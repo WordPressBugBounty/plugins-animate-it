@@ -1,9 +1,9 @@
 === Animate It! ===
 Contributors: eleopard
-Tags: css3 animation, animate.css, jquery, on scroll animation, delay, infinite, entry exit, iteration
+Tags: css3 animation, animate.css, jquery, on scroll, infinite
 Requires at least: 4.7.0
-Tested up to: 6.5.2
-Stable tag: 3.0.3
+Tested up to: 6.8.3
+Stable tag: 3.0.4
 License: GNU General Public License version 2 or later
 License URI: http://www.gnu.org/copyleft/gpl.html
 
@@ -12,7 +12,7 @@ Add cool CSS3 animations to your content.
 == Description ==
 Add cool CSS3 animations to your content.
 
-[Demo](http://downloads.eleopard.in/animate-it-demo-wordpress/ "Demo") | [Documentation](http://downloads.eleopard.in/animate-it-documentation-wordpress/ "Documentation") | [Class Generator](http://downloads.eleopard.in/class-generator-wordpress/ "Class Generator")
+[Demo](https://eleopardsolutions.com/animate-it-documentation-wordpress/ "Demo") | [Documentation](https://eleopardsolutions.com/animate-it-documentation-wordpress/ "Documentation") | [Class Generator](https://eleopardsolutions.com/animate-it-class-generator/ "Class Generator")
 
 [youtube https://youtu.be/JKRn6NUM-i4]
 
@@ -27,7 +27,7 @@ Some of the Key features Include:
 * Providing delay feature in animation to create a nice animation sequence.
 * Providing feature to control the duration for a more precise animation.
 * Providing a button in the editor to easily add an animation block in the article or post.
-* Allow user to add animation on WordPress widgets. Use <a href="http://downloads.eleopard.in/class-generator-wordpress/" target="_blank">Class Generator</a> to generate the required animation classes. 
+* Allow user to add animation on WordPress widgets. Use <a href="https://eleopardsolutions.com/animate-it-class-generator/" target="_blank">Class Generator</a> to generate the required animation classes. 
 * Allow user to apply animation infinitely or any fixed number of times.
 * Option to add custom CSS classes to individual animation block.
 * Options to enable or disable animations on Smartphones and Tablets.
@@ -85,6 +85,9 @@ Add duration class ( duration1 to duration20 ) along with the other classes. or 
 
 
 == Changelog ==
+
+= Version 3.0.4 =
+* Tested up to version 6.8.3
 
 = Version 3.0.3 =
 * Tested up to version 6.5.2

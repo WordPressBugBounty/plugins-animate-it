@@ -5,7 +5,7 @@
  * Domain Path: /lang
  * Plugin URI: http://www.eleopard.in
  * Description: Add cool CSS3 animations to your content.
- * Version: 3.0.3
+ * Version: 3.0.4
  * Author: eLEOPARD Design Studios
  * Author URI: http://www.eleopard.in
  * License: GNU General Public License version 2 or later; see LICENSE.txt
