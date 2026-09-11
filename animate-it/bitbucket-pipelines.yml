@@ -1,0 +1,200 @@
+# ==============================================================
+# DEPLOYMENT PIPELINE (Animate It! — WordPress plugin, SVN-hosted)
+# --------------------------------------------------------------
+# Mirrors the rezzi-outlook-app pipeline shape (promote → auto-tag
+# → deploy-on-tag), adapted for a WordPress.org-style SVN repo
+# instead of a git-tag-triggered CodePipeline/S3 build.
+#
+# Entry Points:
+#   MANUAL (custom pipelines):
+#     promote-dev-to-master → version-gate check + merge dev → master
+#                              Run from the 'dev' branch.
+#
+#   AUTOMATIC (on push to master):
+#     branches.master → reads the version from readme.txt's
+#                       "Stable tag" (cross-checked against the
+#                       "Version:" header in edsanimate.php) and
+#                       pushes a git tag v<version>.
+#
+#   AUTOMATIC (on git tag matching v*):
+#     tags: 'v*' → builds the block (npm run build), mirrors the
+#                  deployable files into SVN trunk, commits trunk,
+#                  then does a server-side `svn copy` of trunk into
+#                  tags/<version>. Only trunk/ is ever checked out —
+#                  the dozens of old release tags on WordPress.org
+#                  are never downloaded.
+#
+# Required Repository Variables:
+#   promote-dev-to-master, branches.master (git write):
+#     BITBUCKET_USERNAME, BITBUCKET_TOKEN
+#     (Bitbucket App Password / Access Token, scope: Repositories → Write)
+#
+#   tags: 'v*' (SVN write — mark these Secured):
+#     SVN_USERNAME, SVN_PASSWORD
+#     (your WordPress.org plugin-committer credentials for animate-it)
+#
+# Files deployed to SVN trunk (everything git-tracked except the
+# dev-only files below):
+#   LICENSE.txt, assets/, build/, edsanimate.php, lang/, legal.txt,
+#   readme.txt, uninstall.php
+# Excluded from the SVN deploy:
+#   .git, .gitignore, src/, package.json, package-lock.json, node_modules
+# The SVN repo's top-level /assets/ (banner, icon, screenshots — the
+# WordPress.org listing images) is never touched by this pipeline;
+# update those manually if they change.
+# ==============================================================
+
+image: node:20
+
+pipelines:
+  custom:
+    # ----------------------------------------------------------
+    # PROMOTE DEV → MASTER (manual trigger, run from dev branch)
+    # ----------------------------------------------------------
+    # Bitbucket → Pipelines → Run pipeline →
+    #   Branch: dev → Pipeline: promote-dev-to-master
+    # ----------------------------------------------------------
+    promote-dev-to-master:
+      - step:
+          name: Version Check + Merge dev → master
+          script:
+            - |
+              if [ "${BITBUCKET_BRANCH}" != "dev" ]; then
+                echo "ERROR: This pipeline must be run from the 'dev' branch (currently on '${BITBUCKET_BRANCH}')."
+                exit 1
+              fi
+
+            - git remote set-url origin "https://${BITBUCKET_USERNAME}:${BITBUCKET_TOKEN}@bitbucket.org/${BITBUCKET_REPO_FULL_NAME}.git"
+            - git config user.email "contact@eleopard.in"
+            - git config user.name "Bitbucket Pipelines"
+
+            - |
+              git fetch origin master
+
+              DEV_VERSION=$(head -25 readme.txt | grep -m1 "^Stable tag:" | sed -E 's/^Stable tag:[[:space:]]*//' | tr -d '[:space:]')
+              MASTER_VERSION=$(git show FETCH_HEAD:readme.txt | head -25 | grep -m1 "^Stable tag:" | sed -E 's/^Stable tag:[[:space:]]*//' | tr -d '[:space:]')
+              echo "==> dev version   : ${DEV_VERSION}"
+              echo "==> master version: ${MASTER_VERSION}"
+
+              node -e "
+                const a = '${DEV_VERSION}'.split('.').map(Number);
+                const b = '${MASTER_VERSION}'.split('.').map(Number);
+                for (let i = 0; i < 3; i++) {
+                  if (a[i] > b[i]) process.exit(0);
+                  if (a[i] < b[i]) {
+                    console.error('ERROR: dev version (${DEV_VERSION}) is not greater than master version (${MASTER_VERSION}). Bump the version first.');
+                    process.exit(1);
+                  }
+                }
+                console.error('ERROR: dev version (${DEV_VERSION}) is the same as master. Bump the version first.');
+                process.exit(1);
+              "
+
+            - git checkout -b master FETCH_HEAD
+            - git merge --ff-only "${BITBUCKET_COMMIT}"
+            - git push origin master
+            - echo "==> master updated to dev (${DEV_VERSION}). Auto-tag pipeline will now run."
+
+  branches:
+    # ------------------------------------------------------------
+    # AUTO-TAG ON MASTER PUSH
+    # ------------------------------------------------------------
+    master:
+      - step:
+          name: Create Release Tag from Plugin Version
+          script:
+            - VERSION=$(head -25 readme.txt | grep -m1 "^Stable tag:" | sed -E 's/^Stable tag:[[:space:]]*//' | tr -d '[:space:]')
+            - PHP_VERSION=$(head -25 edsanimate.php | grep -m1 "Version:" | sed -E 's/.*Version:[[:space:]]*//' | tr -d '[:space:]\r')
+            - |
+              if [ "$VERSION" != "$PHP_VERSION" ]; then
+                echo "ERROR: readme.txt 'Stable tag' (${VERSION}) does not match edsanimate.php 'Version:' (${PHP_VERSION})."
+                echo "Fix both to match before merging to master."
+                exit 1
+              fi
+            - TAG="v${VERSION}"
+            - echo "==> Plugin version is ${VERSION}, target tag is ${TAG}"
+            - git config user.email "contact@eleopard.in"
+            - git config user.name "Bitbucket Pipelines"
+            - git remote set-url origin "https://${BITBUCKET_USERNAME}:${BITBUCKET_TOKEN}@bitbucket.org/${BITBUCKET_REPO_FULL_NAME}.git"
+            - git fetch --tags
+            - |
+              if git rev-parse --verify "refs/tags/${TAG}" >/dev/null 2>&1; then
+                echo "Tag ${TAG} already exists — nothing to do."
+                echo "Bump the version in edsanimate.php and readme.txt before merging to master again."
+              else
+                git tag "${TAG}"
+                git push origin "${TAG}"
+                echo "==> Tag ${TAG} pushed. SVN deploy pipeline will now run."
+              fi
+
+  tags:
+    # ------------------------------------------------------------
+    # DEPLOY TAGGED RELEASE TO WORDPRESS.ORG SVN
+    # ------------------------------------------------------------
+    # trunk is checked out (fresh, every run — never trust a stale
+    # local working copy), synced to match this tag, committed, and
+    # then copied server-side into tags/<version>. The historical
+    # tags/ folders on the SVN server are never downloaded.
+    # ------------------------------------------------------------
+    'v*':
+      - step:
+          name: Build and Deploy to WordPress.org SVN
+          deployment: Production
+          caches:
+            - node
+          script:
+            - ': ${SVN_USERNAME:?SVN_USERNAME must be set.}'
+            - ': ${SVN_PASSWORD:?SVN_PASSWORD must be set.}'
+            - export PLUGIN_SLUG="animate-it"
+            - export SVN_URL="https://plugins.svn.wordpress.org/${PLUGIN_SLUG}"
+            - VERSION="${BITBUCKET_TAG#v}"
+            - echo "==> Deploying version ${VERSION} to ${SVN_URL}"
+
+            # BUILD (regenerate build/ from src/ so it can never go stale)
+            - npm ci
+            - npm run build
+
+            # TOOLING
+            - apt-get update && apt-get install -y subversion rsync
+
+            # CHECKOUT — trunk only. --depth=empty on the root means
+            # tags/ and branches/ stay as empty placeholders; only
+            # trunk is pulled down to full depth.
+            - svn co --depth=empty "$SVN_URL" svn-repo --username "$SVN_USERNAME" --password "$SVN_PASSWORD" --non-interactive --no-auth-cache
+            - cd svn-repo
+            - svn up trunk --set-depth infinity --username "$SVN_USERNAME" --password "$SVN_PASSWORD" --non-interactive --no-auth-cache
+
+            # SYNC — mirror the plugin's deployable files into trunk.
+            - |
+              rsync -av --delete \
+                --exclude='.git' \
+                --exclude='.gitignore' \
+                --exclude='.svn' \
+                --exclude='src' \
+                --exclude='package.json' \
+                --exclude='package-lock.json' \
+                --exclude='node_modules' \
+                --exclude='svn-repo' \
+                ../ trunk/
+
+            # STAGE CHANGES
+            - svn add --force trunk --username "$SVN_USERNAME" --password "$SVN_PASSWORD" -q
+            - svn status trunk | grep '^!' | awk '{print $2}' | xargs -r svn delete
+
+            # COMMIT TRUNK
+            - |
+              if svn status trunk | grep -q .; then
+                svn commit trunk -m "Release ${VERSION}" --username "$SVN_USERNAME" --password "$SVN_PASSWORD" --non-interactive --no-auth-cache
+              else
+                echo "No trunk changes to commit."
+              fi
+
+            # TAG — server-side copy, no tags/ checkout needed.
+            - |
+              if svn ls "$SVN_URL/tags/${VERSION}" --username "$SVN_USERNAME" --password "$SVN_PASSWORD" --non-interactive >/dev/null 2>&1; then
+                echo "Tag ${VERSION} already exists on SVN — skipping."
+              else
+                svn copy "$SVN_URL/trunk" "$SVN_URL/tags/${VERSION}" -m "Tagging version ${VERSION}" --username "$SVN_USERNAME" --password "$SVN_PASSWORD" --non-interactive --no-auth-cache
+              fi
+
+            - echo "==> Deployed ${VERSION} to WordPress.org."

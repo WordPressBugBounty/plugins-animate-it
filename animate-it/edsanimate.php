@@ -3,11 +3,11 @@
  * Plugin Name: Animate It!
  * Text Domain: eds-animate
  * Domain Path: /lang
- * Plugin URI: http://www.eleopard.in
+ * Plugin URI: https://eleopardsolutions.com/
  * Description: Add cool CSS3 animations to your content.
- * Version: 3.0.4
+ * Version: 3.0.7
  * Author: eLEOPARD Design Studios
- * Author URI: http://www.eleopard.in
+ * Author URI: https://eleopardsolutions.com/
  * License: GNU General Public License version 2 or later; see LICENSE.txt
  *  http://www.gnu.org/copyleft/gpl.html GNU/GPL
     (C) 2014 eLEOPARD Design Studios Pvt Ltd. All rights reserved

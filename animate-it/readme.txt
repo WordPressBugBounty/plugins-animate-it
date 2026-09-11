@@ -2,8 +2,8 @@
 Contributors: eleopard
 Tags: css3 animation, animate.css, jquery, on scroll, infinite
 Requires at least: 4.7.0
-Tested up to: 6.8.3
-Stable tag: 3.0.4
+Tested up to: 7.1
+Stable tag: 3.0.7
 License: GNU General Public License version 2 or later
 License URI: http://www.gnu.org/copyleft/gpl.html
 
@@ -85,6 +85,15 @@ Add duration class ( duration1 to duration20 ) along with the other classes. or 
 
 
 == Changelog ==
+
+= Version 3.0.7 =
+* Tested up to version 7.1
+
+= Version 3.0.6 =
+* Tested up to version 7.0.2
+
+= Version 3.0.5 =
+* Tested up to version 6.9
 
 = Version 3.0.4 =
 * Tested up to version 6.8.3

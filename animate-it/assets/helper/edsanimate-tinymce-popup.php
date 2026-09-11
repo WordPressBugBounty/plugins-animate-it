@@ -491,12 +491,12 @@ $scroll_offset = get_option ( 'eds_scroll_offset', '75' );
 				<div class="edsai-footer-wrapper">
 					<div class="edsai-footer">
 						<div class="edsai-footer-left">
-							<?php _e( 'Powered by', 'eds-animate' ); ?> <a href="http://www.eleopard.in" target="_blank">eLEOPARD</a>
+							<?php _e( 'Powered by', 'eds-animate' ); ?> <a href="https://eleopardsolutions.com" target="_blank">eLEOPARD</a>
 							| <a
 								href="https://wordpress.org/support/view/plugin-reviews/animate-it"
 								target="_blank"><?php _e( 'Review Plugin', 'eds-animate' ); ?></a>
 							| <a
-								href="http://www.downloads.eleopard.in/animate-it-documentation-wordpress"
+								href="https://eleopardsolutions.com/animate-it-documentation-wordpress"
 								target="_blank"><?php _e( 'Documentation', 'eds-animate' ); ?></a>	
 						</div>
 						<div class="edsai-footer-right">

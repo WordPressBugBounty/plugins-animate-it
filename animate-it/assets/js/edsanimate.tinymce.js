@@ -28,8 +28,8 @@
 			return {
 				longname : "Animate It! ShortCode",
 				author : 'Eleopard Design Studios Pvt. Ltd.',
-				authorurl : 'http://eleopard.in/',
-				infourl : 'http://downloads.eleopard.in/',
+				authorurl : 'https://eleopardsolutions.com/',
+				infourl : 'https://eleopardsolutions.com/animate-it-documentation-wordpress/',
 				version : "1.0"
 			};
 		}
